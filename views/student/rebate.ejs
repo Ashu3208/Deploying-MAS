@@ -1,0 +1,77 @@
+<%- include("../partials/head") %>
+<title>Rebate</title>
+<%- include("../partials/head2") %>
+    <%- include("../student/navbar") %>
+
+        <div class="card">
+            <form action="/rebate" method="post">
+                <div class="mb-3">
+                    <label for="startingDate" class="form-label"><b>Starting date</b></label>
+                    <input type="date" id="startingDate" class="form-control" name="startDate">
+                    <label for="endingDate" class="form-label"><b>Ending Date</b></label>
+                    <input type="date" id="endingDate" class="form-control" name="endDate">
+
+                    <button type="submit" class="btn btn-primary mt-3">Submit</button>
+                </div>
+                <script>
+                     var startInput = document.getElementById("startingDate");
+                    const today = new Date();
+        
+                    // Disable keyboard input
+                    startInput.addEventListener("keydown", function (event) {
+                        event.preventDefault();
+                    });
+                    var endInput = document.getElementById("endingDate");
+                    
+                    // Disable keyboard input
+                    endInput.addEventListener("keydown", function (event) {
+                        event.preventDefault();
+                    });
+                    startInput.min = today.toISOString().split("T")[0];
+                    endInput.min = today.toISOString().split("T")[0];
+                    
+                </script>
+            </form>
+        </div>
+
+        <div class="box" id="heading">
+            <h1> My Rebate requests </h1>
+        </div>
+
+        <div class="box">
+            <% for (let i=0; i < rebates.length; i++) { %>
+                <form class="item" action="/rebate/remove" method="post">
+                    <button type="submit" class="remove" name="button" value="<%=rebates[i]._id%>">X</button>
+                    <p>
+                    <table>
+                        <tr>
+                            <td><b>From:</b></td>
+
+                            <td>
+                                <%=rebates[i].startDate%>
+
+                            </td>
+                            <td><b>To:</b></td>
+                            <td>
+                                <%=rebates[i].endDate%>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><b>Days:</b></td>
+                            <td>
+                                <%=rebates[i].days%>
+
+                            </td>
+                            <td><b>Status:</b></td>
+                            <td>
+                                <%=rebates[i].status%>
+                            </td>
+                        </tr>
+                    </table>
+                    </p>
+                </form>
+                <% }%>
+        </div>
+        </body>
+
+        </html>

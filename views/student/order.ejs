@@ -1,0 +1,51 @@
+<%- include("../partials/head") %>
+<title>Order</title>
+<%- include("../partials/head2") %>
+  <%- include("navbar") %>
+
+    <div class="box" id="heading">
+      <h1> My Orders </h1>
+    </div>
+
+    <div class="box">
+      <% for (let i=0; i < orders.length; i++) { %>
+        <div class="item">
+          <p>
+          <table>
+            <% for (let j=0; j < orders[i].itemName.length; j++) { %>
+
+              <tr>
+                <td><b>Name:</b></td>
+                <td>
+                  <%=orders[i].itemName[j]%>
+                </td>
+
+
+                <td><b>Price: </b></td>
+                <td>₹<%=orders[i].price[j]%>/-
+                </td>
+
+
+                <td><b>Quantity:</b></td>
+                <td>
+                  <%=orders[i].quantity[j]%>
+                </td>
+
+              </tr>
+
+
+              <% }%>
+                <tr>
+                  <td><b>Total: </b></td>
+                  <td>₹<%=orders[i].total%>/-
+                  </td>
+                </tr>
+          </table>
+          </p>
+        </div>
+
+        <% }%>
+
+          </body>
+
+          </html>

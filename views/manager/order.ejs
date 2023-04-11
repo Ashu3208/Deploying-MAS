@@ -1,0 +1,72 @@
+<%- include("../partials/head") %>
+<title>Order</title>
+<%- include("../partials/head2") %>
+    <%- include("navbar") %>
+
+
+        <div class="box" id="heading">
+            <h1> Orders </h1>
+        </div>
+
+        <div class="box">
+
+            <% for (let i=0; i < orders.length; i++) { %>
+                <form action="/manager/order" method="post">
+
+                    <div class="item">
+                        <p>
+                            <button type="submit" class="add" name="button" value="<%=orders[i]._id%>">✓</button>
+                        <table>
+                            <tr>
+                                <td><b>Roll: </b></td>
+                                <td>
+                                    <%=orders[i].rollNo%>
+                                </td>
+
+                            </tr>
+
+
+
+
+                            <% for (let j=0; j < orders[i].itemName.length; j++) { %>
+
+                                <tr>
+                                    <td><b>Name:</b></td>
+                                    <td>
+                                        <%=orders[i].itemName[j]%>
+                                    </td>
+
+
+                                    <td><b>Price: </b></td>
+                                    <td>₹<%=orders[i].price[j]%>/-
+                                    </td>
+
+
+                                    <td><b>Quantity:</b></td>
+                                    <td>
+                                        <%=orders[i].quantity[j]%>
+                                    </td>
+
+
+                                </tr>
+
+
+                                <% }%>
+                                    <tr>
+                                        <td><b>Total: </b></td>
+                                        <td>₹<%=orders[i].total%>/-
+                                        </td>
+
+                                    </tr>
+                        </table>
+
+                        </p>
+
+                    </div>
+                </form>
+
+                <% }%>
+        </div>
+        </body>
+
+        </html>
