@@ -9,7 +9,7 @@ const Bill = require('../models/Bill')
 const User = require('../models/User')
 const Item = require('../models/Item')
 const Rebate = require('../models/Rebate')
-
+// const popup = require('popups');
 
 // create routes
 //get home
@@ -45,7 +45,6 @@ router.get("/login", (req, res) => {
 
 // Orders page
 router.get("/orders", async (req, res) => {
-
     if (req.isAuthenticated()) {
         if (process.env.SUPERUSER === 'true') {
             res.redirect("/")
@@ -137,11 +136,12 @@ router.post("/complain/remove", async (req, res) => {
 })
 
 router.get("/rebate", async (req, res) => {
+    let flag= req.query.flag;
     if (req.isAuthenticated()) {
         if (process.env.SUPERUSER === 'true') {
             res.redirect("/")
         } else {
-            res.render("student/rebate", { rebates: await Rebate.find({ rollNo: req.user.rollNumber }), message: "" })
+            res.render("student/rebate", { rebates: await Rebate.find({ rollNo: req.user.rollNumber }), message: "",flag: flag})
         }
 
     }
@@ -160,8 +160,19 @@ router.post("/rebate", async (req, res) => {
     const curr_date = new Date();
     const startDate = date1.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
     const endDate = date2.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
+    const student_prev_rebates=await Rebate.find({ rollNo: req.user.rollNumber });
 
-    if (date2.getTime() >= date1.getTime() && date1.getTime() >= curr_date.getTime()) {
+    let flag=0;
+    let prev_date_1,prev_date_2;
+    for(let i=0;i<(student_prev_rebates).length;i++){
+        prev_date_1 = new Date(student_prev_rebates[i].startDate);
+        prev_date_2 = new Date(student_prev_rebates[i].endDate);
+        if((date1.getTime() >= prev_date_1.getTime() && date1.getTime() <= prev_date_2.getTime()) || (date2.getTime() >= prev_date_1.getTime() && date2.getTime() <= prev_date_2.getTime())){
+            flag=1;
+            break;
+        }
+    }
+    if (date2.getTime() >= date1.getTime() && date1.getTime() >= curr_date.getTime() && flag == 0) {
         const diff = Math.abs(date2.getTime() - date1.getTime()) + 1;
         const diffDays = Math.ceil(diff / (1000 * 3600 * 24));
         console.log(diffDays);
@@ -174,7 +185,9 @@ router.post("/rebate", async (req, res) => {
         })
         rebate.save()
     }
-    res.redirect("/rebate")
+    
+    res.redirect("/rebate?flag=" + flag)
+    // res.jsonp({error : flag})
 })
 
 router.post("/rebate/remove", async (req, res) => {
@@ -202,14 +215,17 @@ router.post("/extras", async (req, res) => {
     const list = await Extra.find({});
     const items = [], prices = [], quantities = []
     let totalCost = 0;
-
-    for (let i = 0; i < req.body.quantity.length; i++) {
-        if (req.body.quantity[i] > 0) {
-            items.push(list[i].name);
-            prices.push(list[i].price);
-            quantities.push(req.body.quantity[i]);
-            totalCost += req.body.quantity[i] * list[i].price;
+try {
+        for (let i = 0; i < req.body.quantity.length; i++) {
+            if (req.body.quantity[i] > 0) {
+                items.push(list[i].name);
+                prices.push(list[i].price);
+                quantities.push(req.body.quantity[i]);
+                totalCost += req.body.quantity[i] * list[i].price;
+            }
         }
+    } catch (error) {
+        return res.send(`<script>alert("Extras unavailable.Please Try again"); window.location.href='/extras';</script>`);
     }
     await User.findByIdAndUpdate(req.user._id, { $inc: { extrasCost: totalCost } })
     if (items.length != 0) {
@@ -284,7 +300,12 @@ router.get("/manager/rebateApproval", async (req, res) => {
 router.post("/manager/rebateApproval/approved", async (req, res) => {
     await Rebate.findByIdAndUpdate(req.body.button, { status: "Approved" })
     const rebate = await Rebate.findById(req.body.button)
-    await User.findOneAndUpdate({ rollNumber: rebate.rollNo }, { rebateDays: rebate.days })
+    try {
+        await User.findOneAndUpdate({ rollNumber: rebate.rollNo }, { rebateDays: rebate.days })
+    } catch (error) {
+        return res.send(`<script>alert("Request has been withdrawn"); window.location.href='/manager/rebateApproval';</script>`);
+    }
+    
     res.redirect("/manager/rebateApproval")
 })
 router.post("/manager/rebateApproval/rejected", async (req, res) => {
@@ -333,7 +354,7 @@ router.get("/manager/messMenu", async (req, res) => {
 
 router.post("/manager/messMenu/add", async (req, res) => {
     const item = new Item({
-        name: req.body.name,
+        name: req.body.name.trim().replace(/\s+/g, ' '),
         code: req.body.code
     });
 
@@ -342,7 +363,51 @@ router.post("/manager/messMenu/add", async (req, res) => {
             return /^\s*$/.test(str);
         }
         if (!isWhitespaceString(req.body.name)) {
-            await item.save();
+            try {
+                const Code = parseInt(req.body.code);
+                const result = await Item.updateOne({ name: req.body.name.trim().replace(/\s+/g, ' '), code: Code }, { code: Code - 2 })
+
+                if (Code % 10 === 0) {
+                    
+                    const result2 = await Item.updateOne({ name: req.body.name.trim().replace(/\s+/g, ' '), code: Code + 1 }, { code: Code - 1 })
+                    
+                    if (result.modifiedCount === 0 && result2.modifiedCount === 0) {
+                        await item.save()
+                        console.log("no copy in regular and extras")
+                    } else {
+                        await Item.updateOne({ name: req.body.name.trim().replace(/\s+/g, ' '), code: Code - 1 }, { code: Code + 1 })
+                        await Item.updateOne({ name: req.body.name.trim().replace(/\s+/g, ' '), code: Code - 2 }, { code: Code })
+
+                    }
+                    if (result.modifiedCount === 1) {
+                        console.log("regular copy exists")
+                    }
+                    if (result2.modifiedCount === 1) {
+                        console.log("extra copy exists")
+                    }
+                } else if (Code % 10 === 1) {
+                    const result2 = await Item.updateOne({ name: req.body.name.trim().replace(/\s+/g, ' '), code: Code - 1 }, { code: Code - 3 })
+                    if (result.modifiedCount === 0 && result2.modifiedCount === 0) {
+                        await item.save()
+                        console.log("no copy in regular and extras")
+                    } else {
+                        await Item.updateOne({ name: req.body.name.trim().replace(/\s+/g, ' '), code: Code - 3 }, { code: Code - 1 })
+                        await Item.updateOne({ name: req.body.name.trim().replace(/\s+/g, ' '), code: Code - 2 }, { code: Code })
+
+                    }
+
+                    if (result2.modifiedCount === 1) {
+                        console.log("regular copy exists")
+                    }
+                    if (result.modifiedCount === 1) {
+                        console.log("extra copy exists")
+                    }
+                }
+
+            } catch (err) {
+                console.log(err)
+            }
+
         }
     } catch (err) {
         console.log(err)
@@ -382,12 +447,11 @@ router.post("/manager/extras/add", async (req, res) => {
             return /^\s*$/.test(str);
         }
         if (!isWhitespaceString(req.body.newItem) && !isWhitespaceString(req.body.price)) {
-            
 
-
-            const result = await Extra.updateOne({ name: req.body.newItem.trim().replace(/\s+/g, ' ') }, { price: req.body.price })
-            console.log(result.nModified)
             try {
+                const result = await Extra.updateOne({ name: req.body.newItem.trim().replace(/\s+/g, ' ') }, { price: req.body.price })
+                console.log(result.nModified)
+
                 if (result.modifiedCount === 0) {
                     await extra.save()
                 }
@@ -434,7 +498,7 @@ router.post("/manager/accessAccount", async (req, res) => {
     console.log(formattedStart + formattedEnd);
 
     if (date2 >= date1) {
-        const workingDays = Math.ceil((Math.abs(date2 - date1)) / (1000 * 3600 * 24));
+        const workingDays = Math.ceil((Math.abs(date2 - date1)) / (1000 * 3600 * 24)) + 1;
         console.log(workingDays);
         for (let i = 0; i < students.length; i++) {
             let totalCost = 0;
