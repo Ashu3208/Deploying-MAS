@@ -15,7 +15,9 @@ const rebateSchema = new mongoose.Schema({
         required:true,
         min:1
     },
-    status:String
+    status:String,
+    displayStatus:String,
+    daysUsed:Number
 })
 
 module.exports = mongoose.model('Rebate',rebateSchema)
